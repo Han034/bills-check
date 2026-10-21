@@ -102,7 +102,7 @@ export class OpenAIProvider implements Provider {
   }
 
   async disableKey(key: KeyRow): Promise<DisableResult> {
-    if (!key.scope) throw new Error("anahtarın projesi bilinmiyor");
+    if (!key.scope) throw new Error("the key's project is unknown");
     await requestJson(this.f, "OpenAI", `${BASE}/organization/projects/${encodeURIComponent(key.scope)}/api_keys/${encodeURIComponent(key.externalId)}`,
       { method: "DELETE", headers: { authorization: `Bearer ${this.adminKey}` } });
     return { reversible: false };

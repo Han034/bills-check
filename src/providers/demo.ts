@@ -14,13 +14,13 @@ interface Spike { externalId: string; start: number; end: number | null; peak: n
 
 const KEYS: Omit<DemoKey, "active" | "off">[] = [
   { externalId: "chat", name: "prod-chatbot", label: "OpenAI", base: 0.018, preset: { mode: "kill", windowLimit: 4, dailyLimit: 60 } },
-  { externalId: "agent", name: "ajan-deneme", label: "Anthropic", base: 0.03, preset: { mode: "kill", windowLimit: 6, dailyLimit: 40 } },
+  { externalId: "agent", name: "agent-sandbox", label: "Anthropic", base: 0.03, preset: { mode: "kill", windowLimit: 6, dailyLimit: 40 } },
   { externalId: "script", name: "sheets-script", label: "Gemini", base: 0.006, preset: { mode: "warn", windowLimit: 3, dailyLimit: 25 } }
 ];
 
 export const SCENARIOS = {
-  leak: { externalId: "script", peak: 7, ramp: 6, title: "sheets-script sızdı", meta: "herkese açık dosyada, yabancı istekler" },
-  loop: { externalId: "agent", peak: 1.4, ramp: 4, title: "ajan-deneme döngüde", meta: "aynı hatayı tekrar tekrar düzeltiyor" }
+  leak: { externalId: "script", peak: 7, ramp: 6, title: "sheets-script leaked", meta: "in a public file; requests from strangers" },
+  loop: { externalId: "agent", peak: 1.4, ramp: 4, title: "agent-sandbox is looping", meta: "fixing the same error over and over" }
 } as const;
 export type ScenarioName = keyof typeof SCENARIOS;
 
@@ -100,7 +100,7 @@ export class DemoProvider implements Provider {
 
   private find(externalId: string) {
     const k = this.keys.find(x => x.externalId === externalId);
-    if (!k) throw new Error("demo anahtarı yok: " + externalId);
+    if (!k) throw new Error("no such demo key: " + externalId);
     return k;
   }
 }

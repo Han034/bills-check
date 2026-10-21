@@ -89,13 +89,13 @@ export class GeminiProvider implements Provider {
   }
 
   async disableKey(key: KeyRow): Promise<DisableResult> {
-    if (!key.scope) throw new Error("anahtarın kaynak adı bilinmiyor");
+    if (!key.scope) throw new Error("the key's resource name is unknown");
     await requestJson(this.f, "Gemini", `https://apikeys.googleapis.com/v2/${key.scope}`, { method: "DELETE" });
     return { reversible: true };
   }
 
   async enableKey(key: KeyRow): Promise<void> {
-    if (!key.scope) throw new Error("anahtarın kaynak adı bilinmiyor");
+    if (!key.scope) throw new Error("the key's resource name is unknown");
     await requestJson(this.f, "Gemini", `https://apikeys.googleapis.com/v2/${key.scope}:undelete`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
   }
 }

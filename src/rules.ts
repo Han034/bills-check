@@ -29,8 +29,8 @@ export function evaluate(key: KeyRow, spend: Spend, windowMin: number): Decision
     // the window breach is reported first; once it has been, a daily breach on top of it is news of its own
     const breach = overDay && (!overWindow || key.warnedFor === "window") ? "daily" : "window";
     const reason = breach === "window"
-      ? `${windowMin} dk'da ${usd(spend.window)} (eşik ${usd(key.windowLimit)})`
-      : `bugün ${usd(spend.day)} (günlük eşik ${usd(key.dailyLimit)})`;
+      ? `${usd(spend.window)} in ${windowMin} min (limit ${usd(key.windowLimit)})`
+      : `${usd(spend.day)} today (daily limit ${usd(key.dailyLimit)})`;
     if (key.mode === "kill") return { kind: "kill", breach, reason };
     // warn once per breach; a daily breach stays until midnight, a window breach until the window calms down
     if (key.warnedFor === null || (key.warnedFor === "window" && breach === "daily")) return { kind: "warn", breach, reason };

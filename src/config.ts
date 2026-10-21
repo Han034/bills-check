@@ -32,7 +32,7 @@ function num(env: Env, k: string, def: number, min = 0): number {
   const raw = str(env, k);
   if (raw === null) return def;
   const v = Number(raw);
-  if (!Number.isFinite(v) || v < min) throw new Error(`${k} geçerli bir sayı olmalı (>= ${min}), gelen: ${raw}`);
+  if (!Number.isFinite(v) || v < min) throw new Error(`${k} must be a number >= ${min}, got: ${raw}`);
   return v;
 }
 
@@ -44,10 +44,10 @@ const LOOPBACK = new Set(["127.0.0.1", "::1", "localhost"]);
 
 export function loadConfig(env: Env = process.env): Config {
   const mode = str(env, "DEFAULT_MODE") ?? "warn";
-  if (mode !== "warn" && mode !== "kill") throw new Error(`DEFAULT_MODE "warn" ya da "kill" olmalı, gelen: ${mode}`);
+  if (mode !== "warn" && mode !== "kill") throw new Error(`DEFAULT_MODE must be "warn" or "kill", got: ${mode}`);
 
   const telegramToken = str(env, "TELEGRAM_BOT_TOKEN"), telegramChat = str(env, "TELEGRAM_CHAT_ID");
-  if (!!telegramToken !== !!telegramChat) throw new Error("Telegram için TELEGRAM_BOT_TOKEN ve TELEGRAM_CHAT_ID birlikte verilmeli");
+  if (!!telegramToken !== !!telegramChat) throw new Error("Telegram needs both TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID");
 
   const geminiProject = str(env, "GEMINI_PROJECT_ID");
 
@@ -77,8 +77,8 @@ export function loadConfig(env: Env = process.env): Config {
   };
 
   if (!LOOPBACK.has(cfg.host) && !cfg.dashboardPassword)
-    throw new Error(`HOST=${cfg.host} dışarıya açık; panelde yönetici anahtarlarıyla iş yapılabildiği için DASHBOARD_PASSWORD zorunlu`);
+    throw new Error(`HOST=${cfg.host} is reachable from outside; DASHBOARD_PASSWORD is required because the dashboard acts with admin keys`);
   if (!cfg.demo && !cfg.openai && !cfg.anthropic && !cfg.gemini)
-    throw new Error("İzlenecek sağlayıcı yok: OPENAI_ADMIN_KEY, ANTHROPIC_ADMIN_KEY ya da GEMINI_PROJECT_ID ver (ya da denemek için DEMO=1)");
+    throw new Error("Nothing to watch: set OPENAI_ADMIN_KEY, ANTHROPIC_ADMIN_KEY or GEMINI_PROJECT_ID (or DEMO=1 to try it out)");
   return cfg;
 }

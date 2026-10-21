@@ -46,7 +46,7 @@ export async function buildServer(cfg: Config, store: Store, watcher: Watcher, d
     app.addHook("onRequest", async (req, reply) => {
       if (req.url === "/healthz") return;
       if (!authorized(req.headers.authorization, pw))
-        return reply.code(401).header("www-authenticate", 'Basic realm="Fatura Bekcisi", charset="UTF-8"').send({ error: "giriş gerekli" });
+        return reply.code(401).header("www-authenticate", 'Basic realm="Bills Check", charset="UTF-8"').send({ error: "sign-in required" });
     });
   }
 
@@ -87,7 +87,7 @@ export async function buildServer(cfg: Config, store: Store, watcher: Watcher, d
   if (webDir && fs.existsSync(path.join(webDir, "index.html"))) {
     await app.register(fastifyStatic, { root: webDir });
   } else {
-    app.get("/", async (_req, reply) => reply.type("text/plain; charset=utf-8").send("Panel derlenmemiş: `npm run build` ya da geliştirme için `npm run dev:web` (http://localhost:5173)."));
+    app.get("/", async (_req, reply) => reply.type("text/plain; charset=utf-8").send("Dashboard not built: run `npm run build`, or `npm run dev:web` for development (http://localhost:5173)."));
   }
 
   return app;

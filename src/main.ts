@@ -14,7 +14,7 @@ import type { Provider } from "./types.js";
 import { Watcher } from "./watcher.js";
 
 const cfg = loadConfig();
-const store = new Store(cfg.demo ? ":memory:" : path.join(cfg.dataDir, "bekci.db"));
+const store = new Store(cfg.demo ? ":memory:" : path.join(cfg.dataDir, "bills-check.db"));
 const prices = loadPrices(cfg.pricesFile);
 
 /** The demo's day starts at 02:00 today, like the prototype. */
@@ -31,7 +31,7 @@ const providers: Provider[] = demoProvider ? [demoProvider] : [
 
 const channels = notifiersFrom(cfg);
 let app: Awaited<ReturnType<typeof buildServer>> | null = null;
-const notifier = fanOut(channels, e => app?.log.error({ err: e }, "bildirim gönderilemedi"));
+const notifier = fanOut(channels, e => app?.log.error({ err: e }, "notification failed"));
 const watcher = new Watcher(cfg, store, clock, notifier, providers);
 
 let timer: NodeJS.Timeout | undefined;
@@ -48,9 +48,9 @@ function schedule() {
 
 function logStart() {
   const names = providers.map(p => p.label).join(", ");
-  const how = [cfg.dryRun ? "deneme modu: hiçbir anahtar kapatılmaz" : null, channels.length ? `${channels.length} bildirim kanalı` : "bildirim kanalı yok"]
+  const how = [cfg.dryRun ? "dry run: no key is ever disabled" : null, channels.length ? `${channels.length} notification channel(s)` : "no notification channel"]
     .filter(Boolean).join(" · ");
-  store.log(clock.now(), "start", "Bekçi başladı", `${names} · ${how}`);
+  store.log(clock.now(), "start", "Watcher started", `${names} · ${how}`);
 }
 
 const demo: DemoControls | null = demoProvider && demoClock ? {
@@ -78,9 +78,9 @@ logStart();
 await watcher.tick();
 schedule();
 await app.listen({ host: cfg.host, port: cfg.port });
-if (cfg.demo) app.log.info("DEMO modu: sahte anahtarlar, hiçbir hesaba bağlanmaz");
-if (cfg.dryRun) app.log.warn("DRY_RUN: eşik aşılınca yalnızca uyarılır, anahtar kapatılmaz");
-if (!channels.length) app.log.warn("Bildirim kanalı yok: TELEGRAM_*, SLACK_WEBHOOK_URL ya da DISCORD_WEBHOOK_URL ver");
+if (cfg.demo) app.log.info("DEMO mode: fake keys, no accounts are touched");
+if (cfg.dryRun) app.log.warn("DRY_RUN: limits only alert, no key is disabled");
+if (!channels.length) app.log.warn("No notification channel: set TELEGRAM_*, SLACK_WEBHOOK_URL or DISCORD_WEBHOOK_URL");
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, async () => {

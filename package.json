@@ -1,11 +1,11 @@
 {
-  "name": "fatura-bekcisi",
+  "name": "bills-check",
   "version": "0.1.0",
-  "description": "LLM API anahtarlarını dakikada bir izleyen, eşik aşılınca uyaran ya da anahtarı kapatan kendi sunucunda çalışan bekçi.",
+  "description": "A self-hosted circuit breaker for LLM API keys: watches OpenAI, Anthropic and Gemini spend every minute and alerts or disables a key that runs away.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Han034/fatura-bekcisi.git"
+    "url": "git+https://github.com/Han034/bills-check.git"
   },
   "keywords": [
     "llm",

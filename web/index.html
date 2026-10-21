@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
-<title>Fatura Bekçisi</title>
+<title>Bills Check</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237b61ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="./styles.css">
 </head>
@@ -23,77 +23,77 @@
 </svg>
 
 <main class="app">
-  <header class="pagehead" id="genel">
-    <span class="mark" aria-hidden="true">FB</span>
-    <div><h1 class="title">Fatura Bekçisi</h1><span class="meta" id="headMeta">bağlanıyor…</span></div>
-    <span class="live" id="mainState">Nöbette</span>
+  <header class="pagehead" id="overview">
+    <span class="mark" aria-hidden="true">BC</span>
+    <div><h1 class="title">Bills Check</h1><span class="meta" id="headMeta">connecting…</span></div>
+    <span class="live" id="mainState">On watch</span>
   </header>
 
-  <div class="note is-warn" id="dryNote" hidden><span>Deneme modu: eşik aşılınca yalnızca uyarılır, hiçbir anahtar kapatılmaz (<code>DRY_RUN</code>).</span></div>
-  <div class="note is-neg" id="connNote" hidden><span id="connText">Sunucuya ulaşılamıyor.</span></div>
+  <div class="note is-warn" id="dryNote" hidden><span>Dry run: limits only send alerts, no key is ever disabled (<code>DRY_RUN</code>).</span></div>
+  <div class="note is-neg" id="connNote" hidden><span id="connText">Cannot reach the server.</span></div>
   <div id="provNotes" class="notes"></div>
 
   <div class="grid">
     <div class="col">
-      <section class="card" aria-label="Bugünkü harcama">
+      <section class="card" aria-label="Spend today">
         <div class="metric">
-          <span class="meta">Bugün · <span class="num" id="clock">--:--</span></span>
+          <span class="meta">Today · <span class="num" id="clock">--:--</span></span>
           <span class="amount" id="total"></span>
-          <span class="meta" id="rateNow">dakikada $0.00</span>
+          <span class="meta" id="rateNow">$0.00/min</span>
         </div>
-        <div class="bars" id="bars" aria-label="Son 30 dakikanın dakikalık harcaması"></div>
+        <div class="bars" id="bars" aria-label="Spend per minute, last 30 minutes"></div>
         <div class="stats">
-          <div><span class="label" id="windowLabel">Son 15 dk</span><b class="num" id="lastWindow">$0.00</b></div>
-          <div><span class="label">Kapatılan</span><b class="num" id="offCount">0</b></div>
-          <div><span class="label">Kurtarılan</span><b class="num" id="savedSmall">$0</b></div>
+          <div><span class="label" id="windowLabel">Last 15 min</span><b class="num" id="lastWindow">$0.00</b></div>
+          <div><span class="label">Disabled</span><b class="num" id="offCount">0</b></div>
+          <div><span class="label">Saved</span><b class="num" id="savedSmall">$0</b></div>
         </div>
       </section>
 
-      <section class="card" aria-label="Senaryolar" id="demoCard" hidden>
-        <div><h2 class="title">Bir şey ters gitsin</h2><span class="meta">Demo modu: anahtarlar ve tutarlar sahte. Bekçinin ne yaptığını izle.</span></div>
+      <section class="card" aria-label="Scenarios" id="demoCard" hidden>
+        <div><h2 class="title">Make something go wrong</h2><span class="meta">Demo mode: keys and amounts are fake. Watch what the watcher does.</span></div>
         <div class="actions is-grow">
-          <button class="btn is-quiet" type="button" data-scenario="loop">Ajan döngüde</button>
-          <button class="btn" type="button" data-scenario="leak">Anahtar sızdı</button>
+          <button class="btn is-quiet" type="button" data-scenario="loop">Agent loops</button>
+          <button class="btn" type="button" data-scenario="leak">Key leaks</button>
         </div>
         <div class="row-h">
-          <div class="seg" role="group" aria-label="Hız" id="speed">
+          <div class="seg" role="group" aria-label="Speed" id="speed">
             <button type="button" aria-pressed="true" data-v="1">1×</button><button type="button" aria-pressed="false" data-v="3">3×</button>
           </div>
           <span class="grow"></span>
-          <button class="btn is-ghost is-sm" type="button" data-scenario="reset">Baştan başlat</button>
+          <button class="btn is-ghost is-sm" type="button" data-scenario="reset">Start over</button>
         </div>
       </section>
     </div>
 
     <div class="col">
-      <section class="card" aria-label="Kurtarılan">
+      <section class="card" aria-label="Saved">
         <div class="metric" id="savedBox" hidden>
-          <span class="meta">Kurtarılan · bugün · tahmini</span>
+          <span class="meta">Saved · today · estimate</span>
           <span class="amount" id="saved"></span>
-          <span class="meta" id="savedHow">Kapatma anındaki hız × 6 sa uyarı gecikmesi</span>
+          <span class="meta" id="savedHow">Burn rate at shutoff × 6 h alert delay</span>
         </div>
         <div class="empty" id="savedEmpty">
           <span class="ico"><svg class="i"><use href="#i-shield-check"></use></svg></span>
-          <span class="head">Bugün kapatma yok</span>
-          <span class="meta">Bir anahtar eşiği aşarsa burada görünür.</span>
+          <span class="head">Nothing disabled today</span>
+          <span class="meta">If a key goes over its limit, it shows up here.</span>
         </div>
       </section>
 
-      <section class="card" id="anahtarlar" aria-label="Anahtarlar">
-        <div class="section-h"><span class="head">Anahtarlar</span><span class="meta">Dokun, eşiği ayarla</span></div>
+      <section class="card" id="keysCard" aria-label="Keys">
+        <div class="section-h"><span class="head">Keys</span><span class="meta">Tap to set limits</span></div>
         <ul class="list" id="keys"></ul>
         <div class="empty" id="keysEmpty" hidden>
           <span class="ico"><svg class="i"><use href="#i-key-round"></use></svg></span>
-          <span class="head">Henüz anahtar yok</span>
-          <span class="meta">Sağlayıcılardan ilk liste geldiğinde burada görünür.</span>
+          <span class="head">No keys yet</span>
+          <span class="meta">They show up here once the providers list them.</span>
         </div>
       </section>
 
-      <section class="card" id="olaylar" aria-label="Olaylar">
-        <div class="section-h"><span class="head">Olaylar</span><span class="meta" id="evCount">0</span></div>
+      <section class="card" id="eventsCard" aria-label="Events">
+        <div class="section-h"><span class="head">Events</span><span class="meta" id="evCount">0</span></div>
         <div class="more" id="evBox">
           <ul class="list" id="log"></ul>
-          <button class="morebtn" type="button" aria-expanded="false" id="evMore" hidden><span class="m" id="evMoreN">0 daha</span><span class="l">Daha az</span></button>
+          <button class="morebtn" type="button" aria-expanded="false" id="evMore" hidden><span class="m" id="evMoreN">0 more</span><span class="l">Show less</span></button>
         </div>
       </section>
     </div>
@@ -101,43 +101,43 @@
 
   <footer class="foot">
     <span id="footProviders"></span>
-    <span>Tutarlar sağlayıcıların kullanım verisinden hesaplanan tahminlerdir; kesin fatura için sağlayıcının faturalama sayfasına bak.</span>
+    <span>Amounts are estimates computed from the providers' usage data; check each provider's billing page for the exact bill.</span>
   </footer>
 </main>
 
 <div class="dockwrap">
-  <nav class="dock" aria-label="Bölümler">
-    <a href="#genel" aria-label="Genel" title="Genel"><svg class="i"><use href="#i-gauge"></use></svg></a>
-    <a href="#anahtarlar" aria-label="Anahtarlar" title="Anahtarlar"><svg class="i"><use href="#i-key-round"></use></svg></a>
-    <a href="#olaylar" aria-label="Olaylar" title="Olaylar"><svg class="i"><use href="#i-history"></use></svg></a>
+  <nav class="dock" aria-label="Sections">
+    <a href="#overview" aria-label="Overview" title="Overview"><svg class="i"><use href="#i-gauge"></use></svg></a>
+    <a href="#keysCard" aria-label="Keys" title="Keys"><svg class="i"><use href="#i-key-round"></use></svg></a>
+    <a href="#eventsCard" aria-label="Events" title="Events"><svg class="i"><use href="#i-history"></use></svg></a>
   </nav>
 </div>
 
 <dialog class="sheet" id="keySheet" aria-labelledby="shTitle">
   <form class="sheet-body" method="dialog">
-    <div><h2 class="title" id="shTitle">Anahtar</h2><span class="meta" id="shMeta"></span></div>
+    <div><h2 class="title" id="shTitle">Key</h2><span class="meta" id="shMeta"></span></div>
     <div class="stack">
-      <span class="label" id="shWLabel">Son 15 dk</span>
+      <span class="label" id="shWLabel">Last 15 min</span>
       <span class="amount is-md" id="shW"></span>
-      <div class="progress" role="progressbar" aria-label="Eşiğe yakınlık" aria-valuemin="0" aria-valuemax="100" id="shBar"><i style="--v:0%"></i></div>
+      <div class="progress" role="progressbar" aria-label="Share of limit" aria-valuemin="0" aria-valuemax="100" id="shBar"><i style="--v:0%"></i></div>
     </div>
     <div class="limits">
-      <label class="field"><span class="label" id="shWinLabel">15 dk eşiği ($)</span>
+      <label class="field"><span class="label" id="shWinLabel">15-min limit ($)</span>
         <input class="input" id="shWin" type="number" inputmode="decimal" min="0" step="0.5" required></label>
-      <label class="field"><span class="label">Günlük eşik ($)</span>
+      <label class="field"><span class="label">Daily limit ($)</span>
         <input class="input" id="shDay" type="number" inputmode="decimal" min="0" step="1" required></label>
     </div>
-    <span class="meta">0 o eşiği kapatır.</span>
-    <div class="stack"><span class="label">Eşik aşılınca</span>
-      <div class="seg" role="group" aria-label="Eşik aşılınca" id="shMode">
-        <button type="button" aria-pressed="true" data-v="kill">Uyar + kapat</button><button type="button" aria-pressed="false" data-v="warn">Sadece uyar</button>
+    <span class="meta">0 turns that limit off.</span>
+    <div class="stack"><span class="label">When over a limit</span>
+      <div class="seg" role="group" aria-label="When over a limit" id="shMode">
+        <button type="button" aria-pressed="true" data-v="kill">Alert + disable</button><button type="button" aria-pressed="false" data-v="warn">Alert only</button>
       </div></div>
-    <div class="note is-warn" id="shGone" hidden><span>Bu sağlayıcı anahtarı yalnızca silerek kapatabiliyor; yeniden açılamaz, yeni anahtar oluşturman gerekir.</span></div>
+    <div class="note is-warn" id="shGone" hidden><span>This provider can only disable a key by deleting it: it cannot be re-enabled, you will need a new key.</span></div>
     <div class="actions">
-      <button class="btn is-ghost is-sm is-danger" type="button" id="shKill">Şimdi kapat</button>
+      <button class="btn is-ghost is-sm is-danger" type="button" id="shKill">Disable now</button>
       <span class="grow"></span>
-      <button class="btn is-quiet" type="submit">Kapat</button>
-      <button class="btn" type="button" id="shRestore" hidden>Anahtarı yeniden aç</button>
+      <button class="btn is-quiet" type="submit">Close</button>
+      <button class="btn" type="button" id="shRestore" hidden>Re-enable key</button>
     </div>
   </form>
 </dialog>

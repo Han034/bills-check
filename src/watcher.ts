@@ -70,7 +70,7 @@ export class Watcher {
       if (now - (this.keysRefreshedAt.get(p.id) ?? -Infinity) >= KEY_REFRESH_MS) {
         const added = this.store.syncKeys(p.id, await p.listKeys(), this.cfg.defaults);
         this.keysRefreshedAt.set(p.id, now);
-        for (const k of added) this.store.log(now, "info", `${k.name} izlemeye alındı`, `${this.labelOf(k)} · ${k.mode === "kill" ? "uyar + kapat" : "sadece uyar"}`, k.id);
+        for (const k of added) this.store.log(now, "info", `Watching ${k.name}`, `${this.labelOf(k)} · ${k.mode === "kill" ? "alert + disable" : "alert only"}`, k.id);
       }
       const to = floorMinute(now) + MINUTE;
       const last = this.fetchedTo.get(p.id);
@@ -80,7 +80,7 @@ export class Watcher {
       for (const m of new Set(buckets.flatMap(b => b.unpriced ?? []))) {
         if (this.unpriced.has(p.id + ":" + m)) continue;
         this.unpriced.add(p.id + ":" + m);
-        this.store.log(now, "info", `Fiyatı bilinmeyen model: ${m}`, `${p.label} · en pahalı modelin fiyatıyla hesaplanıyor; PRICES_FILE ile ekle`);
+        this.store.log(now, "info", `Unknown model price: ${m}`, `${p.label} · priced as the most expensive model; add it with PRICES_FILE`);
       }
       this.fetchedTo.set(p.id, to);
       h.lastOkAt = now; h.lastError = null; h.lastErrorAt = null;
@@ -89,8 +89,8 @@ export class Watcher {
       const k = "provider:" + p.id;
       if (now - (this.lastErrorNotice.get(k) ?? -Infinity) >= ERROR_NOTIFY_EVERY_MS) {
         this.lastErrorNotice.set(k, now);
-        this.store.log(now, "provider-error", `${p.label} okunamadı`, h.lastError);
-        await this.notifier.send({ severity: "warn", title: `${p.label} okunamadı`, body: `${h.lastError}\nBu sağlayıcı düzelene kadar izlenmiyor.` });
+        this.store.log(now, "provider-error", `Cannot read ${p.label}`, h.lastError);
+        await this.notifier.send({ severity: "warn", title: `Cannot read ${p.label}`, body: `${h.lastError}\nThis provider is not being watched until it recovers.` });
       }
     }
   }
@@ -115,25 +115,25 @@ export class Watcher {
       // a kill rule fires every poll while over the limit; in dry-run it is announced once per breach, like a warning
       if (dry && (key.warnedFor === d.breach || key.warnedFor === "daily")) return;
       this.store.updateKey(key.id, { status: "warn", warnedFor: d.breach });
-      const meta = dry ? `${d.reason} · deneme modu, kapatılmadı` : `${d.reason} · açık kaldı`;
-      this.store.log(now, "warn", `${key.name} uyarıldı`, meta, key.id);
-      await this.notifier.send({ severity: "warn", title: `${key.name} eşiği aştı`, body: `${label} · ${meta}` });
+      const meta = dry ? `${d.reason} · dry run, not disabled` : `${d.reason} · still enabled`;
+      this.store.log(now, "warn", `${key.name} over its limit`, meta, key.id);
+      await this.notifier.send({ severity: "warn", title: `${key.name} is over its limit`, body: `${label} · ${meta}` });
       return;
     }
 
     // kill
     const p = this.providers.get(key.provider);
     try {
-      if (!p) throw new Error("sağlayıcı yapılandırılmamış");
+      if (!p) throw new Error("provider not configured");
       const res = await p.disableKey(key);
       const saved = savedEstimate(spend.window, this.cfg.windowMin, this.cfg.alertDelayMin);
       this.store.updateKey(key.id, { status: "off", offAt: now, reversible: res.reversible, warnedFor: null });
-      const how = res.reversible ? "panelden yeniden açılabilir" : "sağlayıcı yalnızca silmeye izin veriyor; yeni anahtar gerekir";
-      this.store.log(now, "trip", `${key.name} kapatıldı`, d.reason, key.id, saved);
+      const how = res.reversible ? "Re-enable it from the dashboard" : "This provider can only delete keys; create a new one";
+      this.store.log(now, "trip", `${key.name} disabled`, d.reason, key.id, saved);
       await this.notifier.send({
         severity: "critical",
-        title: `${key.name} kapatıldı`,
-        body: `${label} · ${d.reason}\nBu hızla ${Math.round(this.cfg.alertDelayMin / 60)} saatte ~${usd0(saved)} gidecekti. ${how}.`
+        title: `${key.name} disabled`,
+        body: `${label} · ${d.reason}\nAt this rate it would have burned ~${usd0(saved)} in ${Math.round(this.cfg.alertDelayMin / 60)} hours. ${how}.`
       });
     } catch (e) {
       // stays on: the next poll tries again; the alarm repeats at most every ERROR_NOTIFY_EVERY_MS
@@ -141,8 +141,8 @@ export class Watcher {
       const k = "kill:" + key.id;
       if (now - (this.lastErrorNotice.get(k) ?? -Infinity) >= ERROR_NOTIFY_EVERY_MS) {
         this.lastErrorNotice.set(k, now);
-        this.store.log(now, "kill-failed", `${key.name} KAPATILAMADI`, `${d.reason} · ${errText(e)}`, key.id);
-        await this.notifier.send({ severity: "critical", title: `${key.name} kapatılamadı — elle kapat`, body: `${label} · ${d.reason}\n${errText(e)}` });
+        this.store.log(now, "kill-failed", `${key.name} COULD NOT BE DISABLED`, `${d.reason} · ${errText(e)}`, key.id);
+        await this.notifier.send({ severity: "critical", title: `${key.name} could not be disabled — disable it by hand`, body: `${label} · ${d.reason}\n${errText(e)}` });
       }
     }
   }
@@ -155,41 +155,41 @@ export class Watcher {
   /** Turns a key the watcher disabled back on. Its earlier spend no longer counts, so it does not trip again at once. */
   async restore(id: string) {
     const key = this.store.key(id);
-    if (!key) throw new HttpError(404, "anahtar yok");
-    if (key.status !== "off") throw new HttpError(409, "anahtar zaten açık");
-    if (!key.reversible) throw new HttpError(409, "bu anahtar silindi; sağlayıcıda yeni bir anahtar oluştur");
+    if (!key) throw new HttpError(404, "no such key");
+    if (key.status !== "off") throw new HttpError(409, "key is already enabled");
+    if (!key.reversible) throw new HttpError(409, "this key was deleted; create a new one at the provider");
     const p = this.providers.get(key.provider);
-    if (!p?.enableKey) throw new HttpError(409, "bu sağlayıcıda anahtar yeniden açılamıyor");
+    if (!p?.enableKey) throw new HttpError(409, "this provider cannot re-enable keys");
     await p.enableKey(key);
     const now = this.clock.now();
     this.store.updateKey(id, { status: "ok", offAt: null, warnedFor: null, countFrom: floorMinute(now) + MINUTE });
-    this.store.log(now, "restore", `${key.name} yeniden açıldı`, "panelden", id);
-    await this.notifier.send({ severity: "info", title: `${key.name} yeniden açıldı`, body: "Panelden açıldı; sayaç sıfırlandı." });
+    this.store.log(now, "restore", `${key.name} re-enabled`, "from the dashboard", id);
+    await this.notifier.send({ severity: "info", title: `${key.name} re-enabled`, body: "Re-enabled from the dashboard; its spend counter starts over." });
   }
 
   /** Disables a key right now, whatever its spend: the panel's emergency brake. */
   async disableNow(id: string) {
     const key = this.store.key(id);
-    if (!key) throw new HttpError(404, "anahtar yok");
-    if (key.status === "off") throw new HttpError(409, "anahtar zaten kapalı");
+    if (!key) throw new HttpError(404, "no such key");
+    if (key.status === "off") throw new HttpError(409, "key is already disabled");
     const p = this.providers.get(key.provider);
-    if (!p) throw new HttpError(409, "sağlayıcı yapılandırılmamış");
+    if (!p) throw new HttpError(409, "provider not configured");
     const res = await p.disableKey(key);
     const now = this.clock.now();
     this.store.updateKey(id, { status: "off", offAt: now, reversible: res.reversible, warnedFor: null });
-    this.store.log(now, "trip", `${key.name} kapatıldı`, "panelden, elle", id);
-    await this.notifier.send({ severity: "critical", title: `${key.name} elle kapatıldı`, body: "Panelden kapatıldı." });
+    this.store.log(now, "trip", `${key.name} disabled`, "by hand, from the dashboard", id);
+    await this.notifier.send({ severity: "critical", title: `${key.name} disabled by hand`, body: "Disabled from the dashboard." });
   }
 
   updateSettings(id: string, patch: { mode?: KeyRow["mode"]; windowLimit?: number; dailyLimit?: number }) {
     const key = this.store.key(id);
-    if (!key) throw new HttpError(404, "anahtar yok");
+    if (!key) throw new HttpError(404, "no such key");
     this.store.updateKey(id, patch);
     const parts: string[] = [];
-    if (patch.mode && patch.mode !== key.mode) parts.push(patch.mode === "kill" ? "uyar + kapat" : "sadece uyar");
-    if (patch.windowLimit !== undefined && patch.windowLimit !== key.windowLimit) parts.push(`${this.cfg.windowMin} dk eşiği ${usd(patch.windowLimit)}`);
-    if (patch.dailyLimit !== undefined && patch.dailyLimit !== key.dailyLimit) parts.push(`günlük eşik ${usd(patch.dailyLimit)}`);
-    if (parts.length) this.store.log(this.clock.now(), "settings", `${key.name} ayarı değişti`, parts.join(" · "), id);
+    if (patch.mode && patch.mode !== key.mode) parts.push(patch.mode === "kill" ? "alert + disable" : "alert only");
+    if (patch.windowLimit !== undefined && patch.windowLimit !== key.windowLimit) parts.push(`${this.cfg.windowMin}-min limit ${usd(patch.windowLimit)}`);
+    if (patch.dailyLimit !== undefined && patch.dailyLimit !== key.dailyLimit) parts.push(`daily limit ${usd(patch.dailyLimit)}`);
+    if (parts.length) this.store.log(this.clock.now(), "settings", `${key.name} settings changed`, parts.join(" · "), id);
   }
 
   /** Everything the panel shows, in one read. */

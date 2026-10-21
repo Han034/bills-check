@@ -18,12 +18,12 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const usd = (v: number) => "$" + v.toFixed(2);
 const usd0 = (v: number) => "$" + Math.round(v).toLocaleString("en-US");
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-const hhmm = (t: number) => new Date(t).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+const hhmm = (t: number) => new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 /** Writes a dollar amount as "$" + whole part + decimals, the decimals and sign quieter. */
 function setAmount(el: HTMLElement, v: number, decimals = 2) {
   const [whole, frac] = v.toFixed(decimals).split(".");
-  const html = `<small>$</small>${Number(whole).toLocaleString("tr-TR")}${frac ? `<small>,${frac}</small>` : ""}`;
+  const html = `<small>$</small>${Number(whole).toLocaleString("en-US")}${frac ? `<small>.${frac}</small>` : ""}`;
   if (el.innerHTML !== html) el.innerHTML = html;
 }
 
@@ -65,10 +65,10 @@ const share = (k: KeyView) => (k.windowLimit > 0 ? Math.min(100, (k.window / k.w
 function renderKeys(s: State) {
   $("keysEmpty").hidden = s.keys.length > 0;
   $("keys").innerHTML = s.keys.map(k => {
-    const st = k.status === "off" ? ["is-neg", "Kapalı"] : k.status === "warn" ? ["is-warn", "Uyarıldı"] : ["is-pos", "Açık"];
+    const st = k.status === "off" ? ["is-neg", "Disabled"] : k.status === "warn" ? ["is-warn", "Over limit"] : ["is-pos", "Enabled"];
     return `<li class="is-link" tabindex="0" role="button" data-key="${esc(k.id)}" aria-label="${esc(k.providerLabel + " " + k.name)}, ayarlar">`
       + `<span class="ico">${esc(k.providerLabel.charAt(0))}</span>`
-      + `<div><b>${esc(k.name)}</b><span class="meta">${esc(k.providerLabel)} · ${usd(k.window)} / ${usd(k.windowLimit)}${k.mode === "warn" ? " · sadece uyar" : ""}</span>`
+      + `<div><b>${esc(k.name)}</b><span class="meta">${esc(k.providerLabel)} · ${usd(k.window)} / ${usd(k.windowLimit)}${k.mode === "warn" ? " · alert only" : ""}</span>`
       + `<div class="progress"><i style="--v:${share(k).toFixed(0)}%"></i></div></div>`
       + `<span class="dot ${st[0]}">${st[1]}</span></li>`;
   }).join("");
@@ -78,7 +78,7 @@ function renderSheet() {
   const k = state?.keys.find(x => x.id === openId);
   if (!state || !k) return;
   $("shTitle").textContent = k.name;
-  $("shMeta").textContent = `${k.providerLabel} · bugün ${usd(k.day)} / ${usd(k.dailyLimit)}`;
+  $("shMeta").textContent = `${k.providerLabel} · today ${usd(k.day)} / ${usd(k.dailyLimit)}`;
   setAmount($("shW"), k.window);
   const bar = $("shBar");
   bar.setAttribute("aria-valuenow", share(k).toFixed(0));
@@ -90,24 +90,24 @@ function renderSheet() {
 
 function render(s: State) {
   state = s;
-  const w = `Son ${s.windowMin} dk`;
-  $("windowLabel").textContent = w; $("shWLabel").textContent = w; $("shWinLabel").textContent = `${s.windowMin} dk eşiği ($)`;
-  $("headMeta").textContent = `${s.keys.length} anahtar · ${s.demo ? "demo" : s.providers.map(p => p.label).join(", ")}`;
+  const w = `Last ${s.windowMin} min`;
+  $("windowLabel").textContent = w; $("shWLabel").textContent = w; $("shWinLabel").textContent = `${s.windowMin}-min limit ($)`;
+  $("headMeta").textContent = `${s.keys.length} keys · ${s.demo ? "demo" : s.providers.map(p => p.label).join(", ")}`;
   $("clock").textContent = hhmm(s.now);
   setAmount($("total"), s.totals.today);
-  $("rateNow").textContent = `dakikada ${usd(s.totals.perMinute)} · son ${s.windowMin} dk ortalaması`;
+  $("rateNow").textContent = `${usd(s.totals.perMinute)}/min · ${s.windowMin}-min average`;
   $("lastWindow").textContent = usd(s.totals.window);
   $("offCount").textContent = String(s.totals.offCount);
   $("savedSmall").textContent = usd0(s.totals.savedToday);
   $("savedBox").hidden = s.totals.savedToday === 0; $("savedEmpty").hidden = s.totals.savedToday > 0;
   setAmount($("saved"), s.totals.savedToday, 0);
-  $("savedHow").textContent = `Kapatma anındaki hız × ${Math.round(s.alertDelayMin / 60)} sa uyarı gecikmesi`;
+  $("savedHow").textContent = `Burn rate at shutoff × ${Math.round(s.alertDelayMin / 60)} h alert delay`;
   const failing = s.providers.filter(p => p.lastError);
-  $("mainState").textContent = s.totals.offCount ? `${s.totals.offCount} kapalı` : failing.length ? "Kısmen kör" : "Nöbette";
+  $("mainState").textContent = s.totals.offCount ? `${s.totals.offCount} disabled` : failing.length ? "Partly blind" : "On watch";
   $("dryNote").hidden = !s.dryRun;
   $("demoCard").hidden = !s.demo;
-  $("provNotes").innerHTML = failing.map(p => `<div class="note is-neg"><span><b>${esc(p.label)}</b> okunamıyor: ${esc(p.lastError!)}</span></div>`).join("");
-  $("footProviders").textContent = s.providers.map(p => `${p.label}: ${p.lastOkAt ? "son okuma " + hhmm(p.lastOkAt) : "henüz okunmadı"}`).join(" · ");
+  $("provNotes").innerHTML = failing.map(p => `<div class="note is-neg"><span><b>${esc(p.label)}</b> cannot be read: ${esc(p.lastError!)}</span></div>`).join("");
+  $("footProviders").textContent = s.providers.map(p => `${p.label}: ${p.lastOkAt ? "last read " + hhmm(p.lastOkAt) : "not read yet"}`).join(" · ");
   const max = Math.max(0.1, ...s.bars);
   $("bars").innerHTML = s.bars.map((v, i) => `<i style="--v:${Math.max(4, Math.sqrt(v / max) * 100).toFixed(1)}%" title="${hhmm(s.now - (s.bars.length - 1 - i) * 60_000)} · ${usd(v)}"></i>`).join("");
   renderKeys(s);
@@ -122,7 +122,7 @@ function renderLog(events: EventView[], total: number) {
   }).join("");
   $("evCount").textContent = String(total);
   const extra = Math.max(0, events.length - 10);
-  $("evMore").hidden = extra === 0; $("evMoreN").textContent = extra + " daha";
+  $("evMore").hidden = extra === 0; $("evMoreN").textContent = extra + " more";
 }
 
 async function refresh() {
@@ -133,13 +133,13 @@ async function refresh() {
     const fresh = seenEventId === null ? [] : events.filter(e => e.id > seenEventId! && e.kind === "trip");
     for (const e of fresh.reverse()) {
       const k = s.keys.find(x => x.id === e.keyId);
-      toast(e.title, k?.canRestore ? { action: "Aç", onAction: () => void restore(k.id), time: 5000 } : { time: 4000 });
+      toast(e.title, k?.canRestore ? { action: "Re-enable", onAction: () => void restore(k.id), time: 5000 } : { time: 4000 });
     }
     seenEventId = Math.max(seenEventId ?? 0, ...events.map(e => e.id));
     render(s);
     renderLog(events, s.eventCount);
   } catch (e) {
-    $("connText").textContent = "Sunucuya ulaşılamıyor: " + (e as Error).message;
+    $("connText").textContent = "Cannot reach the server: " + (e as Error).message;
     $("connNote").hidden = false;
   }
 }
@@ -177,7 +177,7 @@ function saveLimit(input: HTMLInputElement, field: "windowLimit" | "dailyLimit")
   if (!openId || input.value === "" || !Number.isFinite(v) || v < 0) { input.setAttribute("aria-invalid", "true"); return; }
   input.removeAttribute("aria-invalid");
   const id = openId;
-  void act(() => api(`/api/keys/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ [field]: v }) }), "Eşik kaydedildi");
+  void act(() => api(`/api/keys/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ [field]: v }) }), "Limit saved");
 }
 $("shWin").addEventListener("change", e => saveLimit(e.target as HTMLInputElement, "windowLimit"));
 $("shDay").addEventListener("change", e => saveLimit(e.target as HTMLInputElement, "dailyLimit"));
@@ -186,7 +186,7 @@ $("shMode").addEventListener("click", e => {
   const b = (e.target as Element).closest<HTMLButtonElement>("button");
   if (!b || !openId) return;
   const k = state?.keys.find(x => x.id === openId);
-  if (b.dataset.v === "kill" && k?.provider === "openai" && !confirm("OpenAI anahtarları kapatılırken SİLİNİR ve geri getirilemez. Bu anahtar için açılsın mı?")) return;
+  if (b.dataset.v === "kill" && k?.provider === "openai" && !confirm("OpenAI keys are DELETED when disabled and cannot be brought back. Turn this on for this key?")) return;
   $("shMode").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
   const id = openId;
   void act(() => api(`/api/keys/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ mode: b.dataset.v }) }));
@@ -196,9 +196,9 @@ $("shRestore").addEventListener("click", () => { if (openId) void restore(openId
 $("shKill").addEventListener("click", () => {
   const k = state?.keys.find(x => x.id === openId);
   if (!k) return;
-  const warn = k.provider === "openai" ? "\n\nOpenAI anahtarı SİLİNECEK, geri getirilemez." : "";
-  if (!confirm(`${k.name} şimdi kapatılsın mı?${warn}`)) return;
-  void act(() => api(`/api/keys/${encodeURIComponent(k.id)}/disable`, { method: "POST" }), `${k.name} kapatıldı`);
+  const warn = k.provider === "openai" ? "\n\nThe OpenAI key will be DELETED and cannot be brought back." : "";
+  if (!confirm(`Disable ${k.name} now?${warn}`)) return;
+  void act(() => api(`/api/keys/${encodeURIComponent(k.id)}/disable`, { method: "POST" }), `${k.name} disabled`);
 });
 
 $("keySheet").addEventListener("click", e => { if (e.target === e.currentTarget) $<HTMLDialogElement>("keySheet").close(); }); // a click on the backdrop
@@ -218,7 +218,9 @@ $("speed").addEventListener("click", e => {
   void act(() => api("/api/demo/speed", { method: "POST", body: JSON.stringify({ speed: Number(b.dataset.v) }) }));
 });
 
-void refresh();
+// a link to #key=<id> opens that key's settings
+const linked = new URLSearchParams(location.hash.slice(1)).get("key");
+void refresh().then(() => { if (linked) openKey(linked); });
 setInterval(() => void refresh(), 2000);
 
 export {};

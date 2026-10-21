@@ -33,7 +33,7 @@ export class AnthropicProvider implements Provider {
   private req<T>(path: string, init: RequestInit = {}) {
     return requestJson<T>(this.f, "Anthropic", BASE + path, {
       ...init,
-      headers: { "x-api-key": this.adminKey, "anthropic-version": "2023-06-01", "content-type": "application/json", "user-agent": "fatura-bekcisi/0.1" }
+      headers: { "x-api-key": this.adminKey, "anthropic-version": "2023-06-01", "content-type": "application/json", "user-agent": "bills-check/0.1" }
     });
   }
 
