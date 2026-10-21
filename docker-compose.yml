@@ -1,0 +1,15 @@
+services:
+  bekci:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    # only this machine can reach the panel; put a TLS reverse proxy in front to open it up
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - bekci-data:/data
+      # for Gemini: the service account key, and GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp.json in .env
+      # - ./gcp-service-account.json:/secrets/gcp.json:ro
+
+volumes:
+  bekci-data:
